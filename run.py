@@ -4,7 +4,7 @@ import requests, json, time
 import ConfigParser
 
 config = ConfigParser.ConfigParser()
-config.read('CONFIG')
+config.read('config.cfg')
 TOKEN = config.get('DEFAULT', 'TOKEN') 
 
 BOT_URL = 'https://api.telegram.org/bot'+TOKEN+'/'

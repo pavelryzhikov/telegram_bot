@@ -1,13 +1,64 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import requests, json, time
-import ConfigParser
+import requests, json , time
+from flask import Flask, request
 
-config = ConfigParser.ConfigParser()
-config.read('config.cfg')
-TOKEN = config.get('DEFAULT', 'TOKEN') 
+app = Flask(__name__)
+app.config.from_object('config')
 
+TOKEN = app.config['TOKEN'] 
+WEBHOOKURL = app.config['WEBHOOKURL'] 
 BOT_URL = 'https://api.telegram.org/bot'+TOKEN+'/'
+
+@app.route('/')
+def hello_world():
+    return 'hello' 
+
+@app.route('/token')
+def token():
+    return TOKEN 
+
+@app.route('/updates')
+def updates():
+    return getUpdates()
+    
+
+@app.route('/'+TOKEN, methods=['POST'])
+def get_webhook1():
+    pass
+    send_hook( WEBHOOKURL+TOKEN)
+    session = requests.Session()
+    respons(chat_id = json.loads(request.data)['message']['chat']['id'], text = 'сам '.decode('utf-8')+json.loads(request.data)['message']['text'], session=session)
+    send_hook()
+    update_params = {"offset": json.loads(request.data)['update_id']+1}
+    r = session.get(BOT_URL+'getUpdates',data = update_params)
+    send_hook(WEBHOOKURL+TOKEN)
+
+    
+
+
+@app.route('/hook', methods=['GET', 'POST'])
+def hook():
+    url = BOT_URL+'setWebhook'
+    #data = {'url': WEBHOOKURL+TOKEN, 'certificate': open('YOURPUBLIC.pem', 'rb')}
+    data = {'url': WEBHOOKURL+TOKEN}
+    r = requests.post(url, data=data)
+    if r.status_code != 200:
+        return 'bad'
+    else: 
+        return 'ok'
+
+
+def send_hook(p_url = ''):
+    url = BOT_URL+'setWebhook'
+    #data = {'url': WEBHOOKURL+TOKEN, 'certificate': open('YOURPUBLIC.pem', 'rb')}
+    data = {'url': p_url}
+    r = requests.post(url, data=data)
+    if r.status_code != 200:
+        return 'bad'
+    else: 
+        return 'ok'
+
 
 class User(object):
     def __init__(self,id,username):
@@ -61,6 +112,8 @@ def getUpdates():
         offset = result.update_id+1
         update_params = {"offset": offset}
         request = session.get(BOT_URL+'getUpdates',data = update_params)
+    return json.dumps(p_json,indent=4,separators=(',',': '))
+
     #session.close()
     #result.__call__()
 
@@ -79,7 +132,8 @@ def reply(result,session):
         if message.text == '/help':
             respons(chat_id = message.chat, text = 'sos',session=session)
 
-while True:
-    getUpdates()            
-    time.sleep(5)
+#while True:
+#    getUpdates()            
+#    time.sleep(5)
+
 

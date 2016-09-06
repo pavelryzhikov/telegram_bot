@@ -166,6 +166,12 @@ def send_reply(p_json):
 
 
 
+def func():
+    data = {"chat_id": 41108330, 
+            "text": 'func()'}
+    requests.get(BOT_URL+'sendMessage',data = data)
+
+
 #        return render_template("main_page.html", comments=Comment.query.all())
 
         #return render_template("main_page.html", comments=comments)

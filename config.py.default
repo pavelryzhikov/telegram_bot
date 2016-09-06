@@ -1,2 +1,11 @@
 TOKEN = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
 WEBHOOKURL = 'https://example.com/'
+
+SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
+            username="",
+            password="",
+            hostname="",
+            databasename="",
+)
+
+SQLALCHEMY_POOL_RECYCLE = 299

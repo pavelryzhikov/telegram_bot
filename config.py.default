@@ -1,2 +1,46 @@
 TOKEN = '123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11'
 WEBHOOKURL = 'https://example.com/'
+
+SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostname}/{databasename}".format(
+            username="",
+            password="",
+            hostname="",
+            databasename="",
+)
+
+SQLALCHEMY_POOL_RECYCLE = 299
+
+BOT_NAME = '@bot'
+
+
+CONST_MIN_BROS = 6
+CONST_MIN_NATURALS = 5
+ADMIN_ID = None
+
+
+HELP_MSG = 'I am a Speed Chat bot.\n'\
+'I can connect you with other people. Just fill info about you. Gender, nick, gender of an opponent.\n'\
+'you can change your info later. just send /form. \n\n'\
+'There you can find bros, hoes, sisters. just send /join ...and wait.\n'\
+'Chat starts when your group is complete. \n'\
+'5 boys + 5 girls for Speed Dating format \n'\
+'and 6 bros/sisters for fraternities and sororities\n\n'\
+'Well. FAQ...\n'\
+'/form to change info\n'\
+'/join to create/connect to a group\n'\
+'/leave to leave a group\n'\
+'/count to check how many people you wait.\n'\
+'when a group completes a chat begins.\n'\
+'I''ll break you in pairs. Talk with each other for 5 minutes.\n'\
+'There is no rules. No names, your personal info, photos, age info. Just talking and fun.\n'\
+'Send stickers to opponents, pics, voices everything you want and nothing personal.\n'\
+'If boring and/or 5 min are gone, send /next and you will jump to the next opponent. It is not automated yet. \n'\
+'So...\n'\
+'/next to jump to the next opponent\n'\
+'That''s all. Good Luck!\n'\
+'/help to read this again\n'\
+'/wish message - if something''s wrong or you wish new features\n'\
+'/stop to unsubscribe and forget\n'\
+'/start ''I am in!''\n'\
+'\n'
+

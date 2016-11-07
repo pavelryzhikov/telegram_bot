@@ -20,7 +20,7 @@ BOT_NAME = app.config['BOT_NAME']
 # custom const
 
 #db = SQLAlchemy(app)
-from speed_dating.database import db, db_users, db_groups, db_pairs
+from speed_dating.database import db, db_users, db_groups, db_pairs, db_admin
 
 CONST_MIN_NATURALS = app.config['CONST_MIN_NATURALS']
 CONST_MIN_BROS = app.config['CONST_MIN_BROS']
@@ -78,22 +78,108 @@ def send_reply(p_json):
     user = User_info(parcel.user_id,parcel.user_name)
     sender = Sender(user.id)
 
-    #reply_markup= {'hide_keyboard':True}
-    #sender.set_reply_markup(reply_markup)
-    #sender.reply_text(parcel.text)
 
-    #return
+
+    if user.id == ADMIN_ID:
+        admin = admin_params() 
+
+        # admin commands
+        if parcel.text == '/admin_info':
+            sender.reply_text(admin)
+            return 
+        elif parcel.text == '/spam on':
+            row_admin = db_admin.query.get('SPAM')
+            row_admin.status = 'Y'
+            db.session.commit()
+            return 
+        elif parcel.text == '/spam off':
+            row_admin = db_admin.query.get('SPAM')
+            row_admin.status = 'N'
+            db.session.commit()
+            return 
+        elif parcel.text == '/get_my_id':
+            sender.reply_text('id=%s'%(user.id))
+            return  
+        elif parcel.text == '/friend on':
+            row_admin = db_admin.query.get('FRIEND')
+            row_admin.status = 'Y'
+            row_admin.f_number = None
+            db.session.commit()
+            return  
+        elif parcel.text == '/friend off':
+            row_admin = db_admin.query.get('FRIEND')
+            row_admin.status = 'N'
+            row_admin.f_number = None
+            db.session.commit()
+            return  
+        elif parcel.text == '/group on':
+            row_admin = db_admin.query.get('GROUP')
+            row_admin.status = 'Y'
+            row_admin.f_string = None
+            db.session.commit()
+            return  
+        elif parcel.text == '/group off':
+            row_admin = db_admin.query.get('GROUP')
+            row_admin.status = 'N'
+            row_admin.f_string = None
+            db.session.commit()
+            return  
+        else: 
+            pass
+       
+        # check admin flags       
+        if admin.spam == 'Y':
+            cursor_users = db_users.query.all()
+            for c_user in cursor_users:
+                resender = Sender(c_user.id)
+                resender.resender(parcel)
+            return
+        elif admin.friend == 'Y':
+            if admin.friend_id is None:
+                row_admin = db_admin.query.get('FRIEND')
+                #row_admin.status = 'Y'
+                row_admin.f_number = parcel.text
+                db.session.commit()
+            else:
+                resender = Sender(admin.friend_id)
+                resender.resender(parcel)
+            
+            return
+        elif admin.group == 'Y':
+            if admin.group_id is None:
+                row_admin = db_admin.query.get('FRIEND')
+                #row_admin.status = 'Y'
+                row_admin.f_string = parcel.text
+                db.session.commit()
+            else:
+                cursor_groups = db_groups.query.filter_by(group = admin.group_id)
+                for c_row_group in cursor_groups:
+                    resender = Sender(c_row_group.user_id)
+                    resender.resender(parcel)
+            
+            return
+        else:
+            pass
+            #sender.reply_text( 'not admin')
+            
+
     wait_count = -1
+    
+    if user.interactive == 'Y':
+        row_user = db_users.query.get(user.id)
+        row_user.interactive = None
+        db.session.commit()
+        debug_resender = Sender(ADMIN_ID)
+        parcel.data['text'] = '#wish id:%d '%(user.id) + parcel.data['text']
+        debug_resender.resender(parcel)
+        sender.reply_text( 'Your message:\n'+parcel.data['text']+'\ndelivered to ADMIN successfully')
+        return
 
-    #if 'reply_markup' in sender.data:
-    #    if 'force_reply' in sender.data['reply_markup']:
-    #        sender.data['x'] = 'del force_reply'
-    #        del sender.data['reply_markup'] #['force_reply']
-    #    else:
-    #        sender.data['y'] = 'del reply_markup'
-    #        del sender.data['reply_markup']
+    if fill_form(user, parcel)==False:
+        pass
+    else:
+        return #fill form in process
 
-    fill_form(user, parcel)
     if parcel.text is not None:
         if parcel.text == '/help':
             sender.reply_text(HELP_MSG)
@@ -105,7 +191,7 @@ def send_reply(p_json):
                 db.session.commit()
             else:
                 pass
-            sender.reply_text( 'hello ' + str(user.nick))
+            sender.reply_text( 'hello, %s'%(user.nick))
             sender.reply_text(HELP_MSG)
             fill_form(user, parcel)
             return
@@ -118,15 +204,12 @@ def send_reply(p_json):
                     if group_row.group is None:
                         db.session.delete(group_row)
                         db.session.delete(user_row)
-                        # del gr
-                        # del u
                     else:
                         sender.reply_text( 'first /leave game')
                         return #cant del. in_game = 'Y'
 
                 else:
                     db.session.delete(user_row)
-                    # del u
             else:
                 sender.reply_text( 'You are already deleted. first /start')
                 return
@@ -188,72 +271,60 @@ def send_reply(p_json):
             groups_count(user)
         elif parcel.text == '/next':
             next_round(user)
-            #sender.reply_text('let''s fun')
-    #    elif parcel.text == '/join':
-    #        sender.reply_text(User.id, 'we need 2 girls and 3 boys')
-    #    elif parcel.text == '/go':
-    #        reply_markup= {'force_reply': True}
-    #        sender.set_reply_markup(reply_markup)
-    #        sender.reply_text('send me info')
-    #    elif parcel.text == '/1':
-    #        #sender.data['reply_to_message_id'] = parcel.message_id
-    #        reply_markup= {'keyboard':[['OK_1','Cancel_1']], 'resize_keyboard': True, 'one_time_keyboard': True}
-    #        sender.set_reply_markup(reply_markup)
-    #        sender.reply_text('chooose variant')
-    #    elif parcel.text == '/2':
-    #        reply_markup= {'inline_keyboard': [[{'text':'gogo','callback_data':'hello1'}], [{'text':'hello','callback_data':'hello2'}]]}
-    #        #reply_markup= {'inline_keyboard': [[['text':'gogo','callback_data':'hello']], [['text':'hello','callback_data':'hello']]]}
-    #        sender.set_reply_markup(reply_markup)
-    #        sender.reply_text('chooose variant')
         elif '/wish' in parcel.text:
-            debug_resender = Sender(ADMIN_ID)
-            parcel.data['text'] = '#wish '+parcel.data['text']
-            debug_resender.resender(parcel)
-        elif '/get_my_id' in parcel.text:
-            sender.reply_text('id=%s'%(user.id))
+            row_user = db_users.query.get(user.id)
+            row_user.interactive = 'Y'
+            db.session.commit()
+            sender.reply_text('please, type your message:')
         else:
-            if user.in_game is None:
-                if user.id == ADMIN_ID:
-                    pass
-                    #return
-                    #reply_markup= {'hide_keyboard':True}
-                    sender.set_reply_markup(reply_markup)
-                    sender.reply_text(parcel.json)
-            elif user.in_game =='Y':
-                debug_resender = Sender(ADMIN_ID)
-#                debug_resender.reply_text('you will not hear. try /join')
+            if user.in_game =='Y':
                 resender = Sender(user.friend_id)
                 resender.resender(parcel)
-                #debug_resender = Sender(ADMIN_ID)
-#                debug_resender.reply_text('you will not hear. try /join')
-                debug_resender.resender(parcel)
             else:
                 sender.reply_text('you will not hear. try /join')
+            debug_resender = Sender(ADMIN_ID)
+            debug_resender.resender(parcel)
 
     if parcel.text is None:
         if user.in_game =='Y':
-            debug_resender = Sender(ADMIN_ID)
-#            debug_resender.reply_text('you will not hear. try /join')
             resender = Sender(user.friend_id)
             resender.resender(parcel)
-            #debug_resender = Sender(ADMIN_ID)
-#            debug_resender.reply_text('you will not hear. try /join')
+            debug_resender = Sender(ADMIN_ID)
             debug_resender.resender(parcel)
         else:
             sender.reply_text('you will not hear. try /join')
 
 
-    if user.id == ADMIN_ID:
-        if '/spam' in parcel.text:
-            cursor_users = db_users.query.all()
-            for c_user in cursor_users:
-                spam = Sender(c_user.id)
-                spam.reply_text((parcel.text).replace('/spam ',''))
-            pass
 
-        #if 'text' in sender.data:
-        #    del sender.data['text']
-        #sender.reply_text(json.dumps(sender.data))
+def admin_console(command):
+    pass
+
+class admin_params(object):
+    def __init__(self):
+        cursor_admin = db_admin.query.all()
+        self.spam = None 
+        self.friend = None
+        self.friend_id = None
+        self.group = None
+        self.group_id = None
+        for key in cursor_admin:
+            if key.item == 'SPAM':
+                self.spam = key.status
+            elif key.item == 'FRIEND':
+                self.friend = key.status
+                self.friend_id = key.f_number
+            elif key.item == 'GROUP':
+                self.group = key.status
+                self.group_id = key.f_string
+            else:
+                pass
+       
+    def __str__(self):
+        return 'spam=%r \n friend=%r \n friend_id=%r \n group=%r \n group_id=%r' % (self.spam, 
+                                                                            self.friend, 
+                                                                            self.friend_id,
+                                                                            self.group,
+                                                                            self.group_id)
 
 def bad_request(sender):
     sender.reply_text('bad request')
@@ -336,7 +407,7 @@ def fill_form(user,  parcel):
                 sender.set_reply_markup(reply_markup)
                 sender.reply_text('Do you want change your nick? \n Current %s'%(user.nick))
                 return
-
+    return False
 
 
 def groups_count(user):
@@ -540,6 +611,7 @@ class User_info(object):
             self.nick = nick
             self.friend_id = None
             self.in_game = None
+            self.interactive = None
         else:
             self.id = self._u.id
             self.gender = self._u.gender
@@ -547,6 +619,7 @@ class User_info(object):
             self.nick = self._u.nick
             self.friend_id = self._u.friend_id
             self.in_game = self._u.in_game
+            self.interactive = self._u.interactive
 
         if self.nick is None:
             self.nick = 'Stranger'

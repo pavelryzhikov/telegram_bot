@@ -9,6 +9,7 @@ SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostnam
 )
 
 SQLALCHEMY_POOL_RECYCLE = 299
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 BOT_NAME = '@bot'
 

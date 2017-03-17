@@ -30,7 +30,7 @@ class db_users(db.Model):
         return '<user id=%r,gender=%r,is_bro=%r,nick=%r,in_game=%r,friend_id=%r>' % (self.id, self.gender, self.is_bro,self.nick,self.in_game, self.friend_id)
 
 class db_groups(db.Model):
-
+    import datetime
     __tablename__ = "groups"
 
     user_id = db.Column(db.Integer, primary_key=True)
@@ -40,13 +40,13 @@ class db_groups(db.Model):
     status = db.Column(db.String(1))
     date_start = db.Column(db.DateTime)
 
-    def __init__(self, user_id, gender = None, is_bro=None):
+    def __init__(self, user_id, gender = None, is_bro=None, date_start = datetime.datetime.now() ):
         self.user_id = user_id
         self.group = None
         self.gender = gender
         self.is_bro= is_bro
         self.status = 'W'
-        self.date_start = None
+        self.date_start = date_start
 
     def __repr__(self):
         return '<Groups id=%r,group=%r,gender=%r,is_bro=%r,status=%r,date_start=%r>' % (self.user_id, self.group, self.gender, self.is_bro, self.status, self.date_start)

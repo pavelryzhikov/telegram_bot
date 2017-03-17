@@ -73,11 +73,41 @@ def send_hook(p_url = ''):
 #    print json.dumps(p_json,indent=4,separators=(',',': '))
 
 def send_reply(p_json):
+    
+    import datetime
 
     parcel = Parcel(p_json)
     user = User_info(parcel.user_id,parcel.user_name)
     sender = Sender(user.id)
 
+
+
+    if parcel.text is not None:
+        if parcel.text == '/start':
+
+            if db_users.query.get(user.id) is None:
+                sender.reply_text( 'try to subscribe')
+                new_user = db_users(id = user.id, nick = user.nick)
+                db.session.add(new_user)
+                db.session.commit()
+                sender.reply_text( 'successfully subscribed')
+            else:
+                pass
+            sender.reply_text( 'hello, %s'%(user.nick))
+            sender.reply_text(HELP_MSG)
+            fill_form(user, parcel)
+            return
+
+        else:
+
+            if db_users.query.get(user.id) is None:
+                sender.reply_text( 'try /start')
+                return
+    else:
+
+        if db_users.query.get(user.id) is None:
+            sender.reply_text( 'try /start')
+            return
 
 
     if user.id == ADMIN_ID:
@@ -178,23 +208,26 @@ def send_reply(p_json):
     if fill_form(user, parcel)==False:
         pass
     else:
+        #sender.reply_text( 'try /form')
         return #fill form in process
 
     if parcel.text is not None:
         if parcel.text == '/help':
             sender.reply_text(HELP_MSG)
-        elif parcel.text == '/start':
-
-            if db_users.query.get(user.id) is None:
-                new_user = db_users(id = user.id, nick = user.nick)
-                db.session.add(new_user)
-                db.session.commit()
-            else:
-                pass
-            sender.reply_text( 'hello, %s'%(user.nick))
-            sender.reply_text(HELP_MSG)
-            fill_form(user, parcel)
-            return
+#        elif parcel.text == '/start':
+#
+#            if db_users.query.get(user.id) is None:
+#                sender.reply_text( 'try to subscribe')
+#                new_user = db_users(id = user.id, nick = user.nick)
+#                db.session.add(new_user)
+#                db.session.commit()
+#                sender.reply_text( 'successfully subscribed')
+#            else:
+#                pass
+#            sender.reply_text( 'hello, %s'%(user.nick))
+#            sender.reply_text(HELP_MSG)
+#            fill_form(user, parcel)
+#            return
 
         elif parcel.text == '/stop':
             user_row = db_users.query.get(user.id)
@@ -226,17 +259,21 @@ def send_reply(p_json):
             fill_form(user, parcel)
             return
         elif parcel.text == '/join':
+            #sender.reply_text('ok, i got it')
             try:
                 if db_groups.query.get(user.id) is None:
+                    #sender.reply_text('try 1')
                     row_user = db_users.query.get(user.id)
-                    row_group = db_groups(user_id = user.id, gender = row_user.gender, is_bro = row_user.is_bro)
+                    row_group = db_groups(user_id = user.id, gender = row_user.gender, is_bro = row_user.is_bro,date_start = datetime.datetime.now() )
                     db.session.add(row_group)
                     db.session.commit()
+                    sender.reply_text('you successfully added to waiting list')
                 else:
                     sender.reply_text( 'try /count')
                     return
 
             except:
+                sender.reply_text('error')
                 db.session.rollback()
 
             try:
@@ -258,7 +295,7 @@ def send_reply(p_json):
                     if row_group.group is None:
                         db.session.delete(row_group)
                         db.session.commit()
-                        sender.reply_text('you successfully leaved from group')
+                        sender.reply_text('you successfully leaved from waiting list')
                     else:
                         sender.reply_text('you are in game. try /next')
                         #bad_request(sender)
@@ -283,16 +320,18 @@ def send_reply(p_json):
             else:
                 sender.reply_text('you will not hear. try /join')
             debug_resender = Sender(ADMIN_ID)
+            debug_resender.reply_text('id:%d'%(user.id))
             debug_resender.resender(parcel)
 
     if parcel.text is None:
         if user.in_game =='Y':
             resender = Sender(user.friend_id)
             resender.resender(parcel)
-            debug_resender = Sender(ADMIN_ID)
-            debug_resender.resender(parcel)
         else:
             sender.reply_text('you will not hear. try /join')
+        debug_resender = Sender(ADMIN_ID)
+        debug_resender.reply_text('id:%d'%(user.id))
+        debug_resender.resender(parcel)
 
 
 
@@ -331,9 +370,14 @@ def bad_request(sender):
 
 def fill_form(user,  parcel):
     sender = Sender(user.id)
+    #sender.reply_text('check info')
     if not db_users.query.get(user.id) is None:
+        #sender.reply_text('1')
         row_user = db_users.query.get(user.id)
+        #sender.reply_text('2')
     else:
+        sender.reply_text('try /start. you are not subscribed')
+        #sender.reply_text('3')
         return
     last_question = None
     curr_question = None
@@ -435,6 +479,40 @@ def groups_count(user):
     else:
         return -1
 
+def create_group_auto():
+    import uuid, datetime
+    while True:
+        cur_group = db.session.query(db_groups).filter(db_groups.status == 'W',db_groups.date_start < datetime.datetime.now()-datetime.timedelta(minutes=5)).limit(CONST_MIN_BROS) 
+        if cur_group.count() < CONST_MIN_BROS:
+            break
+
+        bros = []
+        #row_group = db_groups.query.get(user.id)
+        group_id = str(uuid.uuid1())
+        for c_row_group in cur_group:
+            bros.append(c_row_group.user_id)
+            c_row_group.status = 'A'
+            c_row_group.group = group_id
+            #c_row_group.date_start = datetime.datetime.now()
+        db.session.commit()
+
+        users = bro_pairs(bros)
+
+
+        while True:
+            try:
+                pairs = users.next()
+                for pair in pairs:
+                    row_pair = db_pairs(group_id = group_id, iterator = pair[0], user1=pair[1],user2=pair[2])
+                    db.session.add(row_pair)
+                    db.session.commit()
+            except:
+                break
+
+
+
+
+
 def create_group(user):
     import uuid, datetime
     sender = Sender(user.id)
@@ -450,7 +528,7 @@ def create_group(user):
             bros.append(c_row_group.user_id)
             c_row_group.status = 'A'
             c_row_group.group = group_id
-            c_row_group.date_start = datetime.datetime.now()
+            #c_row_group.date_start = datetime.datetime.now()
         db.session.commit()
     else:
         cursor_groups = db_groups.query.filter_by(status = 'W',is_bro = 'N', gender = 'M').limit(CONST_MIN_NATURALS)
@@ -458,14 +536,14 @@ def create_group(user):
             boys.append(c_row_group.user_id)
             c_row_group.status = 'A'
             c_row_group.group = group_id
-            c_row_group.date_start = datetime.datetime.now()
+            #c_row_group.date_start = datetime.datetime.now()
         db.session.commit()
         cursor_groups = db_groups.query.filter_by(status = 'W',is_bro = 'N', gender = 'W').limit(CONST_MIN_NATURALS)
         for c_row_group in cursor_groups:
             girls.append(c_row_group.user_id)
             c_row_group.status = 'A'
             c_row_group.group = group_id
-            c_row_group.date_start = datetime.datetime.now()
+            #c_row_group.date_start = datetime.datetime.now()
         db.session.commit()
 
 
@@ -570,6 +648,67 @@ def next_round(user):
         #sender2.reply_text('Your new opponent. ' + str(user_info1.nick) + '\n Good luck!\n try start from joke or funny sticker')
 
 
+def next_round_auto():
+    from sqlalchemy import func
+    import datetime
+    #rpe_func(1)
+    # just active group
+    #cur_groups_id = db.session.query(db_pairs.group_id).filter(db_pairs.status == 'A', db_pairs.date_start < datetime.datetime.now()-datetime.timedelta(minutes=4)).distinct() 
+    cur_groups_id = db.session.query(db_groups.group).filter(db_groups.status == 'A').distinct()
+    for i in cur_groups_id:
+        v_group_id = i[0]
+
+        active_rounds = db_pairs.query.filter(db_pairs.status == 'A',db_pairs.group_id == v_group_id, db_pairs.date_start > datetime.datetime.now()-datetime.timedelta(minutes=4))
+        if active_rounds.count() != 0:
+            continue
+
+        current_round = db.session.query(func.min(db_pairs.iterator)).filter_by(status='W',group_id = v_group_id).scalar()
+        if current_round is None:
+            # clear info about in_game status
+            cursor_pairs = db_pairs.query.filter_by(group_id = v_group_id)
+            for c_row_pair in cursor_pairs:
+                c_row_pair.status = 'C'
+
+            cursor_group = db_groups.query.filter_by(group = v_group_id)
+            for c_row_group in cursor_group:
+                #c_row_group.status = 'C'
+                row_user = db_users.query.get(c_row_group.user_id)
+                row_user.in_game = None
+                row_user.friend_id = None
+                spam = Sender(row_user.id)
+                spam.reply_text('GAME OVER!!! \nGood Luck!!!\n...and send /join to try again')
+                db.session.delete(c_row_group)
+            db.session.commit()
+            continue
+    
+    
+        #rpe_func(2)
+        #sender.reply_text('update users...')
+        cursor_pairs = db_pairs.query.filter_by(status = 'W',iterator = current_round, group_id = v_group_id)
+
+        for c_row_pair in cursor_pairs:
+            c_row_pair.status = 'A'
+            c_row_pair.date_start = datetime.datetime.now()
+            # update users
+            user1 = db_users.query.get(c_row_pair.user1)
+            user2 = db_users.query.get(c_row_pair.user2)
+            user1.friend_id = user2.id
+            user2.friend_id = user1.id
+            user1.in_game = 'Y'
+            user2.in_game = 'Y'
+            db.session.commit()
+
+            # send info abot start to everybody in group
+            user_info1 = User_info(user1.id)
+            user_info2 = User_info(user2.id)
+            sender1 = Sender(user_info1.id)
+            sender2 = Sender(user_info2.id)
+
+            sender1.reply_text('Your new opponent %s.\n Good luck!\n try start from joke or funny sticker'%(user_info2.nick))
+            sender2.reply_text('Your new opponent %s.\n Good luck!\n try start from joke or funny sticker'%(user_info1.nick))
+            #sender2.reply_text('Your new opponent. ' + str(user_info1.nick) + '\n Good luck!\n try start from joke or funny sticker')
+
+
 def bro_pairs(bros):
     for rounds in range(1,len(bros)):
         users = []
@@ -594,11 +733,16 @@ def love_pairs(boys, girls):
 
 
 
-def func(id = None):
+def rpe_func(id = None):
     data = {"chat_id": ADMIN_ID,
             "text": 'func()'+str(id)}
     requests.get(BOT_URL+'sendMessage',data = data)
 
+
+def ping():
+    data = {"chat_id": ADMIN_ID,
+            "text": 'alive'}
+    requests.get(BOT_URL+'sendMessage',data = data)
 
 
 class User_info(object):

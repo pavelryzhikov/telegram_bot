@@ -1,33 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import requests, json , time,random
+import requests
 from flask import Flask, request
-
-#from flask import Flask, session, redirect, url_for, escape, request, render_template
-#from flask.ext.sqlalchemy import SQLAlchemy
-
 from speed_dating import app
-#app = Flask(__name__)
-#app.config.from_object('config')
-
-#from model import db, db_users, db_groups, db_pairs
+from controller import send_reply
 
 TOKEN = app.config['TOKEN']
 WEBHOOKURL = app.config['WEBHOOKURL']
 BOT_URL = 'https://api.telegram.org/bot'+TOKEN+'/'
 #BOT_NAME = app.config['BOT_NAME']
-
-# custom const
-
-#db = SQLAlchemy(app)
-from database import db, db_users, db_groups, db_pairs, db_admin
-from controller import send_reply
-
-#CONST_MIN_NATURALS = app.config['CONST_MIN_NATURALS']
-#CONST_MIN_BROS = app.config['CONST_MIN_BROS']
-#ADMIN_ID = app.config['ADMIN_ID']
-#HELP_MSG = app.config['HELP_MSG']
-
 
 
 @app.route('/')

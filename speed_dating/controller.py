@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import requests, json , time,random
+import requests, json , time,random, datetime, uuid
 from flask import Flask, request
 from speed_dating import app
 from database import db, db_users, db_groups, db_pairs, db_admin
@@ -18,7 +18,6 @@ HELP_MSG = app.config['HELP_MSG']
 
 def send_reply(p_json):
     
-    import datetime
 
     parcel = Parcel(p_json)
     user = User_info(parcel.user_id,parcel.user_name)
@@ -424,7 +423,6 @@ def groups_count(user):
         return -1
 
 def create_group_auto():
-    import uuid, datetime
     while True:
         cur_group = db.session.query(db_groups).filter(db_groups.status == 'W',db_groups.date_start < datetime.datetime.now()-datetime.timedelta(minutes=5)).limit(CONST_MIN_BROS) 
         if cur_group.count() < CONST_MIN_BROS:
@@ -458,7 +456,6 @@ def create_group_auto():
 
 
 def create_group(user):
-    import uuid, datetime
     sender = Sender(user.id)
     # set group id
     bros = []
@@ -522,7 +519,6 @@ def create_group(user):
 
 def next_round(user):
     from sqlalchemy import func
-    import datetime
     sender = Sender(user.id)
 
     row_group = db_groups.query.get(user.id)
@@ -594,7 +590,6 @@ def next_round(user):
 
 def next_round_auto():
     from sqlalchemy import func
-    import datetime
     #rpe_func(1)
     # just active group
     #cur_groups_id = db.session.query(db_pairs.group_id).filter(db_pairs.status == 'A', db_pairs.date_start < datetime.datetime.now()-datetime.timedelta(minutes=4)).distinct() 

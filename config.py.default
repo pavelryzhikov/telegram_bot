@@ -9,6 +9,7 @@ SQLALCHEMY_DATABASE_URI = "mysql+mysqlconnector://{username}:{password}@{hostnam
 )
 
 SQLALCHEMY_POOL_RECYCLE = 299
+SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 BOT_NAME = '@bot'
 
@@ -23,8 +24,8 @@ HELP_MSG = 'I am a Speed Chat bot.\n'\
 'you can change your info later. just send /form. \n\n'\
 'There you can find bros, hoes, sisters. just send /join ...and wait.\n'\
 'Chat starts when your group is complete. \n'\
-'5 boys + 5 girls for Speed Dating format \n'\
-'and 6 bros/sisters for fraternities and sororities\n\n'\
+'%r boys + %r girls for Speed Dating format \n'\
+'and %r bros/sisters for fraternities and sororities\n\n'\
 'Well. FAQ...\n'\
 '/form to change info\n'\
 '/join to create/connect to a group\n'\
@@ -42,5 +43,5 @@ HELP_MSG = 'I am a Speed Chat bot.\n'\
 '/wish message - if something''s wrong or you wish new features\n'\
 '/stop to unsubscribe and forget\n'\
 '/start ''I am in!''\n'\
-'\n'
+'\n'%(CONST_MIN_NATURALS,CONST_MIN_NATURALS,CONST_MIN_BROS )
 

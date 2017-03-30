@@ -1,6 +1,7 @@
 
 # my code
 trash/
+venv/
 config.py
 
 # Byte-compiled / optimized / DLL files

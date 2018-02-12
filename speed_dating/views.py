@@ -3,7 +3,7 @@
 import requests
 from flask import Flask, request
 from speed_dating import app
-from controller import send_reply
+from controller import send_reply, ping, debug
 
 TOKEN = app.config['TOKEN']
 WEBHOOKURL = app.config['WEBHOOKURL']
@@ -28,6 +28,7 @@ def updates():
 @app.route('/'+TOKEN, methods=['POST'])
 def get_message():
     try:
+#        debug(request.data)
         send_reply(request.data)
     except:
         pass

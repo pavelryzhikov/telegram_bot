@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*
-from speed_dating.views import ping,next_round_auto, create_group_auto 
+from speed_dating.controller import ping,next_round_auto, create_group_auto 
 import datetime
 now = datetime.datetime.now()
 

@@ -3,8 +3,18 @@
 from flask_sqlalchemy import SQLAlchemy
 from speed_dating import app
 
+
 db = SQLAlchemy(app)
 
+#create table poll (message_id int(11), user_id int(11), golos int(11), primary key (message_id, user_id))
+
+class pollI(db.Model):
+    __tablename__= "poll"
+    message_id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, primary_key=True)
+    golos = db.Column(db.Integer)
+
+    
 class db_users(db.Model):
 
     __tablename__ = "users"

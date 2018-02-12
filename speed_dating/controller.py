@@ -4,6 +4,7 @@ import requests, json , time,random, datetime, uuid
 from flask import Flask, request
 from speed_dating import app
 from database import db, db_users, db_groups, db_pairs, db_admin
+from copy import deepcopy
 
 TOKEN = app.config['TOKEN']
 BOT_URL = 'https://api.telegram.org/bot'+TOKEN+'/'
@@ -15,15 +16,92 @@ CONST_MIN_BROS = app.config['CONST_MIN_BROS']
 ADMIN_ID = app.config['ADMIN_ID']
 HELP_MSG = app.config['HELP_MSG']
 
+reply_markup_mass = {'0': {
+                            'reply_markup': {'inline_keyboard': [[
+                {'text':u'\ud83d\udc4d 0','callback_data':'1'},
+                {'text':u'\ud83d\udc4e 0','callback_data':'-1'}
+                                            ]]
+                                            },
+                            'count': {} # [+1, -1]
+                          }
+                    }
+
+def update_reply_markup(message_id, user_id, choice_val):
+    message_id = str(message_id)
+    user_id = str(user_id)
+    try:
+        if reply_markup_mass[message_id]:
+            pass
+    except:
+        reply_markup_mass[message_id]=deepcopy(reply_markup_mass['0'])
+
+    #debug('update_reply_markup'+message_id+';'+str(reply_markup_mass[message_id]['count'] ))
+    #debug(json.dumps(reply_markup_mass))
+#    debug('test')
+    #debug(json.dumps(reply_markup_mass))
+    reply_markup_mass[message_id]['count'][user_id]=choice_val
+
+#    debug(json.dumps(reply_markup_mass))
+    reply_markup_mass[message_id]['reply_markup']['inline_keyboard'][0][0]['text']=u'\ud83d\udc4d' + str(reply_markup_mass[message_id]['count'].values().count('1'))
+    reply_markup_mass[message_id]['reply_markup']['inline_keyboard'][0][1]['text']=u'\ud83d\udc4e' + str(reply_markup_mass[message_id]['count'].values().count('-1'))
+#    if str(choice_val) == '1':
+#        reply_markup_mass[message_id]['reply_markup']['inline_keyboard'][0][0]['text']=u'\ud83d\udc4d' + str(reply_markup_mass[message_id]['count']['+1']+1)
+#        reply_markup_mass[message_id]['count']['+1']= reply_markup_mass[message_id]['count']['+1']+1
+#    else:
+#        reply_markup_mass[message_id]['reply_markup']['inline_keyboard'][0][1]['text']=u'\ud83d\udc4e' + str(reply_markup_mass[message_id]['count']['-1']+1)
+#        reply_markup_mass[message_id]['count']['-1'] = reply_markup_mass[message_id]['count']['-1']+1
+
+#    debug(json.dumps(reply_markup_mass))
+    return reply_markup_mass[message_id]['reply_markup']
+
+def debug(text, chat_id=ADMIN_ID):
+    data = {"chat_id": chat_id,
+        "text": text}
+    requests.get(BOT_URL+'sendMessage',data = data)
+
+def answerCallbackQuery(callback_query_id, text,show_alert=False):
+    data = {"callback_query_id": callback_query_id,
+        "text": text,
+        "show_alert": show_alert}
+    requests.get(BOT_URL+'answerCallbackQuery',data = data)
+
+def editMessageReplyMarkup(chat_id, message_id,user_id, choice_val):
+    #debug('editMessageReplyMarkup')
+    data = {"chat_id": chat_id,
+        "message_id": message_id,
+        "reply_markup": json.dumps(update_reply_markup(message_id, user_id, choice_val))}
+
+    #debug(json.dumps(data))
+    requests.get(BOT_URL+'editMessageReplyMarkup',data = data)
 
 def send_reply(p_json):
-    
 
+    try:
+        mass = json.loads(p_json)
+        mess_print = 'choice: '+ str(mass['callback_query']['message']['message_id']) + ';' +str( mass['callback_query']['from']['id']) +';' + str(mass['callback_query']['data'])
+        #answerCallbackQuery_id = mass['callback_query']['id']
+        #answerCallbackQuery(answerCallbackQuery_id,mess_print)
+
+        #debug(mess_print,'@test_chanckbi')
+        #debug('before')
+        editMessageReplyMarkup('@test_chanckbi',mass['callback_query']['message']['message_id'],mass['callback_query']['from']['id'],mass['callback_query']['data'] )
+        #debug('after')
+        return
+    except:
+        pass
+
+    #data = {"chat_id": ADMIN_ID,
+    #    "text": p_json}
+    #requests.get(BOT_URL+'sendMessage',data = data)
+    #sender.reply_text(p_json)
+    # обрабатываем инфу о пользователе и его запросе
     parcel = Parcel(p_json)
     user = User_info(parcel.user_id,parcel.user_name)
     sender = Sender(user.id)
+#    sender.reply_text(p_json)
 
 
+    # попытка создать пользователя. (text)
 
     if parcel.text is not None:
         if parcel.text == '/start':
@@ -52,55 +130,63 @@ def send_reply(p_json):
             sender.reply_text( 'try /start')
             return
 
+    # команды админа. (id==ADMIN_ID, text)
 
     if user.id == ADMIN_ID:
-        admin = admin_params() 
+        admin = admin_params()
 
         # admin commands
-        if parcel.text == '/admin_info':
+        if parcel.text == 'test':
+            sender.data['chat_id'] = '@test_chanckbi'
+            sender.set_reply_markup(reply_markup_mass['0']['reply_markup'])
+            sender.reply_text(parcel.text)
+            return
+        elif parcel.text == '/admin_info':
             sender.reply_text(admin)
-            return 
+            return
         elif parcel.text == '/spam on':
             row_admin = db_admin.query.get('SPAM')
             row_admin.status = 'Y'
             db.session.commit()
-            return 
+            return
         elif parcel.text == '/spam off':
             row_admin = db_admin.query.get('SPAM')
             row_admin.status = 'N'
             db.session.commit()
-            return 
+            return
         elif parcel.text == '/get_my_id':
             sender.reply_text('id=%s'%(user.id))
-            return  
+            return
         elif parcel.text == '/friend on':
             row_admin = db_admin.query.get('FRIEND')
             row_admin.status = 'Y'
             row_admin.f_number = None
             db.session.commit()
-            return  
+            return
         elif parcel.text == '/friend off':
             row_admin = db_admin.query.get('FRIEND')
             row_admin.status = 'N'
             row_admin.f_number = None
             db.session.commit()
-            return  
+            return
         elif parcel.text == '/group on':
             row_admin = db_admin.query.get('GROUP')
             row_admin.status = 'Y'
             row_admin.f_string = None
             db.session.commit()
-            return  
+            return
         elif parcel.text == '/group off':
             row_admin = db_admin.query.get('GROUP')
             row_admin.status = 'N'
             row_admin.f_string = None
             db.session.commit()
-            return  
-        else: 
+            return
+        else:
             pass
-       
-        # check admin flags       
+
+        # админская консоль. (id==ADMIN_ID, admin.*, text)
+
+        # check admin flags
         if admin.spam == 'Y':
             cursor_users = db_users.query.all()
             for c_user in cursor_users:
@@ -116,7 +202,7 @@ def send_reply(p_json):
             else:
                 resender = Sender(admin.friend_id)
                 resender.resender(parcel)
-            
+
             return
         elif admin.group == 'Y':
             if admin.group_id is None:
@@ -129,15 +215,23 @@ def send_reply(p_json):
                 for c_row_group in cursor_groups:
                     resender = Sender(c_row_group.user_id)
                     resender.resender(parcel)
-            
+
             return
         else:
             pass
             #sender.reply_text( 'not admin')
-            
+
+
+    # консоль юзера??
+    # ожидание ответа на вопрос.
+    # обработка ответов через статусы.
+    # попытка отловить неверное действие пользователя.
+    # (user.*, text)
 
     wait_count = -1
-    
+
+
+
     if user.interactive == 'Y':
         row_user = db_users.query.get(user.id)
         row_user.interactive = None
@@ -153,6 +247,14 @@ def send_reply(p_json):
     else:
         #sender.reply_text( 'try /form')
         return #fill form in process
+
+
+    # обработка сообщений.
+    # обрабатываются все типы сообщений
+    #(text, type)
+    # точнее обрабатываются команды. остальное просто пересылается.
+
+
 
     if parcel.text is not None:
         if parcel.text == '/help':
@@ -284,7 +386,7 @@ def send_reply(p_json):
 class admin_params(object):
     def __init__(self):
         cursor_admin = db_admin.query.all()
-        self.spam = None 
+        self.spam = None
         self.friend = None
         self.friend_id = None
         self.group = None
@@ -300,10 +402,10 @@ class admin_params(object):
                 self.group_id = key.f_string
             else:
                 pass
-       
+
     def __str__(self):
-        return 'spam=%r \n friend=%r \n friend_id=%r \n group=%r \n group_id=%r' % (self.spam, 
-                                                                            self.friend, 
+        return 'spam=%r \n friend=%r \n friend_id=%r \n group=%r \n group_id=%r' % (self.spam,
+                                                                            self.friend,
                                                                             self.friend_id,
                                                                             self.group,
                                                                             self.group_id)
@@ -424,7 +526,7 @@ def groups_count(user):
 
 def create_group_auto():
     while True:
-        cur_group = db.session.query(db_groups).filter(db_groups.status == 'W',db_groups.date_start < datetime.datetime.now()-datetime.timedelta(minutes=5)).limit(CONST_MIN_BROS) 
+        cur_group = db.session.query(db_groups).filter(db_groups.status == 'W',db_groups.date_start < datetime.datetime.now()-datetime.timedelta(minutes=5)).limit(CONST_MIN_BROS)
         if cur_group.count() < CONST_MIN_BROS:
             break
 
@@ -592,7 +694,7 @@ def next_round_auto():
     from sqlalchemy import func
     #rpe_func(1)
     # just active group
-    #cur_groups_id = db.session.query(db_pairs.group_id).filter(db_pairs.status == 'A', db_pairs.date_start < datetime.datetime.now()-datetime.timedelta(minutes=4)).distinct() 
+    #cur_groups_id = db.session.query(db_pairs.group_id).filter(db_pairs.status == 'A', db_pairs.date_start < datetime.datetime.now()-datetime.timedelta(minutes=4)).distinct()
     cur_groups_id = db.session.query(db_groups.group).filter(db_groups.status == 'A').distinct()
     for i in cur_groups_id:
         v_group_id = i[0]
@@ -619,8 +721,8 @@ def next_round_auto():
                 db.session.delete(c_row_group)
             db.session.commit()
             continue
-    
-    
+
+
         #rpe_func(2)
         #sender.reply_text('update users...')
         cursor_pairs = db_pairs.query.filter_by(status = 'W',iterator = current_round, group_id = v_group_id)

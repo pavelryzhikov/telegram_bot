@@ -28,7 +28,7 @@ def updates():
 @app.route('/'+TOKEN, methods=['POST'])
 def get_message():
     try:
-#        debug(request.data)
+        #debug(request.data)
         send_reply(request.data)
     except:
         pass
